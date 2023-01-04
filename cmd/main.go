@@ -13,9 +13,8 @@ import (
 )
 
 const (
-	logPrefix      = "main %v\n"
-	envFileName    = "app"
-	grpcServerAddr = "localhost:4320"
+	logPrefix   = "main %v\n"
+	envFileName = "app"
 )
 
 func main() {
@@ -34,7 +33,13 @@ func main() {
 	pcapInterface := viper.GetString("PCAP_INTERFACE")
 	pcapFilter := viper.GetString("PCAP_BPF_FILTER")
 
-	grpcClient := network_capture_v1.NewNetworkCaptureClient(grpcServerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	hostname := viper.GetString("SERVER_HOSTNAME")
+	port := viper.GetInt("SERVER_PORT")
+	if port == 0 {
+		panic("port is %d, make sure you set it via environment or app.env file")
+	}
+
+	grpcClient := network_capture_v1.NewNetworkCaptureClient(fmt.Sprintf("%s:%d", hostname, port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	packetCapture := pcap.New(pcapInterface, 0, true, 0, pcapFilter, strings.Split(ipIgnore, ","))
 
