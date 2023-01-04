@@ -34,17 +34,17 @@ func main() {
 	pcapInterface := viper.GetString("PCAP_INTERFACE")
 	pcapFilter := viper.GetString("PCAP_BPF_FILTER")
 
-	packetCapture := pcap.New(pcapInterface, 0, true, 0, pcapFilter, strings.Split(ipIgnore, ","))
-
 	grpcClient := network_capture_v1.NewNetworkCaptureClient(grpcServerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
-	for packet := range packetCapture.Capture {
-		captureRequest := pcap.Processor(packet)
-		resp, err := grpcClient.SendNetworkCapture(captureRequest)
-		if err != nil {
-			fmt.Println(err)
-			continue
+	packetCapture := pcap.New(pcapInterface, 0, true, 0, pcapFilter, strings.Split(ipIgnore, ","))
+
+	go func() {
+		for action := range grpcClient.ReceivedActions {
+			fmt.Println(action)
 		}
-		fmt.Println(resp)
+	}()
+
+	for packet := range packetCapture.Capture {
+		grpcClient.SendNetworkCapture(pcap.Processor(packet))
 	}
 }
